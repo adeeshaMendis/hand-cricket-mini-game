@@ -144,7 +144,7 @@ export default function App() {
     setHistory(prev => [{ icon, text, id: Math.random().toString() }, ...prev]);
   };
   
-  const showNotification = (title, message, icon = '🏆') => {
+  const showNotification = useCallback((title, message, icon = '🏆') => {
     playSound('milestone');
     const container = document.getElementById('achievement-notification-container');
     if (container) {
@@ -154,7 +154,7 @@ export default function App() {
         container.appendChild(notification);
         setTimeout(() => notification.remove(), 4000);
     }
-  };
+  }, [playSound]);
 
   const checkAchievements = useCallback((currentStats, currentScore = 0) => {
     const newAchievements = { ...achievements };
@@ -176,7 +176,7 @@ export default function App() {
         storage.setItem('handCricketStats', JSON.stringify(newStats));
         setStats(newStats);
     }
-  }, [achievements]);
+  }, [achievements, showNotification]);
 
 
   // --- Game Logic ---
@@ -315,7 +315,7 @@ export default function App() {
           }
         } else { // Computer batting
           addHistory('🔴', `OUT! Computer scored ${computerScore}.`);
-          const newStats = { ...stats, wickets: stats.wickets + 1 };
+          const newStats = { ...stats, wickets: (stats.wickets || 0) + 1 };
           setStats(newStats);
           checkAchievements(newStats);
           if (targetScore > 0) {
@@ -336,14 +336,10 @@ export default function App() {
       setMessage('');
       if (gameState === 'playerBatting') {
         const newScore = playerScore + batsmanChoice;
-        setStats(s => ({
-          ...s,
-          totalRuns: s.totalRuns + batsmanChoice,
-          highestScore: Math.max(s.highestScore, newScore)
-        }));
         if (playerScore < 50 && newScore >= 50) showNotification('Milestone!', '50 Runs! Well played!', '🏏');
         if (playerScore < 100 && newScore >= 100) showNotification('Incredible!', '100 Runs! A brilliant century!', '💯');
         setPlayerScore(newScore);
+        setStats(s => ({ ...s, totalRuns: s.totalRuns + batsmanChoice }));
         addHistory('🏏', `You score ${batsmanChoice} run(s).`);
         if (targetScore > 0 && newScore >= targetScore) {
           endGame('win');
